@@ -17,19 +17,18 @@ import (
 	"context"
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/config"
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/interfaces"
-	logInterface "github.com/project-alvarium/provider-logging/pkg/interfaces"
-	"github.com/project-alvarium/provider-logging/pkg/logging"
+	"log/slog"
 	"sync"
 )
 
 type Transit struct {
 	cfg         config.SdkInfo
 	chSubscribe chan []byte
-	logger      logInterface.Logger
+	logger      interfaces.Logger
 	sdk         interfaces.Sdk
 }
 
-func NewTransit(sdk interfaces.Sdk, chSub chan []byte, cfg config.SdkInfo, logger logInterface.Logger) Transit {
+func NewTransit(sdk interfaces.Sdk, chSub chan []byte, cfg config.SdkInfo, logger interfaces.Logger) Transit {
 	return Transit{
 		cfg:         cfg,
 		chSubscribe: chSub,
@@ -48,7 +47,7 @@ func (t *Transit) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) bool
 			if ok {
 				t.sdk.Transit(ctx, msg)
 			} else { //channel has been closed. End goroutine.
-				t.logger.Write(logging.InfoLevel, "transit::chSubscribe closed, exiting")
+				t.logger.Write(slog.LevelInfo, "transit::chSubscribe closed, exiting")
 				return
 			}
 		}
@@ -59,7 +58,7 @@ func (t *Transit) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) bool
 		defer wg.Done()
 
 		<-ctx.Done()
-		t.logger.Write(logging.InfoLevel, "shutdown received")
+		t.logger.Write(slog.LevelInfo, "shutdown received")
 	}()
 	return true
 }

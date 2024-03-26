@@ -16,12 +16,11 @@ package config
 import (
 	"encoding/json"
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/config"
-	logging "github.com/project-alvarium/provider-logging/pkg/config"
 )
 
 type ApplicationConfig struct {
-	Sdk     config.SdkInfo      `json:"sdk,omitempty"`
-	Logging logging.LoggingInfo `json:"logging,omitempty"`
+	Sdk     config.SdkInfo     `json:"sdk,omitempty"`
+	Logging config.LoggingInfo `json:"logging,omitempty"`
 }
 
 func (a ApplicationConfig) AsString() string {

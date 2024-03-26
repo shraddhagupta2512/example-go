@@ -19,8 +19,7 @@ import (
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/config"
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/interfaces"
 	"github.com/project-alvarium/example-go/internal/models"
-	logInterface "github.com/project-alvarium/provider-logging/pkg/interfaces"
-	"github.com/project-alvarium/provider-logging/pkg/logging"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -28,11 +27,11 @@ import (
 type CreateLoop struct {
 	cfg       config.SdkInfo
 	chPublish chan []byte
-	logger    logInterface.Logger
+	logger    interfaces.Logger
 	sdk       interfaces.Sdk
 }
 
-func NewCreateLoop(sdk interfaces.Sdk, ch chan []byte, cfg config.SdkInfo, logger logInterface.Logger) CreateLoop {
+func NewCreateLoop(sdk interfaces.Sdk, ch chan []byte, cfg config.SdkInfo, logger interfaces.Logger) CreateLoop {
 	return CreateLoop{
 		cfg:       cfg,
 		chPublish: ch,
@@ -60,7 +59,7 @@ func (c *CreateLoop) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) b
 			time.Sleep(1 * time.Second)
 		}
 		close(c.chPublish)
-		c.logger.Write(logging.DebugLevel, "cancel received")
+		c.logger.Write(slog.LevelDebug, "cancel received")
 	}()
 
 	wg.Add(1)
@@ -68,7 +67,7 @@ func (c *CreateLoop) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) b
 		defer wg.Done()
 
 		<-ctx.Done()
-		c.logger.Write(logging.InfoLevel, "shutdown received")
+		c.logger.Write(slog.LevelInfo, "shutdown received")
 		cancelled = true
 	}()
 	return true

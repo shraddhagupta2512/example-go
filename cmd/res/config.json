@@ -29,7 +29,8 @@
         "cleanness": false,
         "topics": ["alvarium-test-topic"]
       }
-    }
+    },
+    "layer": "app"
   },
   "logging": {
     "minLogLevel": "debug"

@@ -19,8 +19,7 @@ import (
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/config"
 	"github.com/project-alvarium/alvarium-sdk-go/pkg/interfaces"
 	"github.com/project-alvarium/example-go/internal/models"
-	logInterface "github.com/project-alvarium/provider-logging/pkg/interfaces"
-	"github.com/project-alvarium/provider-logging/pkg/logging"
+	"log/slog"
 	"sync"
 )
 
@@ -28,11 +27,11 @@ type Mutator struct {
 	cfg         config.SdkInfo
 	chSubscribe chan []byte
 	chPublish   chan []byte
-	logger      logInterface.Logger
+	logger      interfaces.Logger
 	sdk         interfaces.Sdk
 }
 
-func NewMutator(sdk interfaces.Sdk, chSub chan []byte, chPub chan []byte, cfg config.SdkInfo, logger logInterface.Logger) Mutator {
+func NewMutator(sdk interfaces.Sdk, chSub chan []byte, chPub chan []byte, cfg config.SdkInfo, logger interfaces.Logger) Mutator {
 	return Mutator{
 		cfg:         cfg,
 		chSubscribe: chSub,
@@ -60,7 +59,7 @@ func (m *Mutator) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) bool
 				m.sdk.Mutate(ctx, msg, b)
 				m.chPublish <- b
 			} else { //channel has been closed. End goroutine.
-				m.logger.Write(logging.InfoLevel, "mutator::chSubscribe closed, exiting")
+				m.logger.Write(slog.LevelInfo, "mutator::chSubscribe closed, exiting")
 				close(m.chPublish)
 				return
 			}
@@ -72,7 +71,7 @@ func (m *Mutator) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) bool
 		defer wg.Done()
 
 		<-ctx.Done()
-		m.logger.Write(logging.InfoLevel, "shutdown received")
+		m.logger.Write(slog.LevelInfo, "shutdown received")
 	}()
 	return true
 }
