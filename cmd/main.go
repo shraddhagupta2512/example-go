@@ -25,6 +25,7 @@ import (
 	"github.com/project-alvarium/example-go/internal/handlers"
 	"log/slog"
 	"os"
+	"fmt"
 )
 
 func main() {
@@ -66,21 +67,44 @@ func main() {
 		}
 		annotators = append(annotators, instance)
 	}
+	// debugging list of annotators:
+	for i, annotator := range annotators {
+		fmt.Printf("Annotator %d: %+v\n", i+1, annotator)
+	} 
 	sdk := pkg.NewSdk(annotators, cfg.Sdk, logger)
+
+	// print the contents of sdk
+	fmt.Printf("******** SDK content*******: %+v\n", sdk)
+
+	// print the contents of cfg.sdk
+	fmt.Printf("******** CFG SDK content*******: %+v\n", cfg.Sdk)
 
 	// handlers for example functionality
 	chCreate := make(chan []byte)
 	chMutate := make(chan []byte)
-	create := handlers.NewCreateLoop(sdk, chCreate, cfg.Sdk, logger)
-	mutate := handlers.NewMutator(sdk, chCreate, chMutate, cfg.Sdk, logger)
-	transit := handlers.NewTransit(sdk, chMutate, cfg.Sdk, logger)
+	create := handlers.NewCreateLoop(sdk, chCreate, cfg.Sdk, logger)      //chChreat is chPublish
+	mutate := handlers.NewMutator(sdk, chCreate, chMutate, cfg.Sdk, logger)     //chCreate is chSubscribe ; chMutate is chPublish
+	transit := handlers.NewTransit(sdk, chMutate, cfg.Sdk, logger)           //chMutate is chSubscribe
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// print the contents of cxt
+	fmt.Printf("******** CXT content*******: %+v\n", ctx)
+
+	// print the contents of CANCEL
+	fmt.Printf("******** CANCEL content*******: %+v\n", cancel)
+
+	// print the contents of cfg
+	fmt.Printf("******** CFG content*******: %+v\n", cfg)
+
+	//This code sets up a cancellable context, then runs a series of bootstrap handlers 
+	//(responsible for initializing the system's core functionality like SDK, data creation, mutation, etc.). 
+	//The use of context ensures that the entire bootstrap process can be canceled gracefully if needed.
 	bootstrap.Run(
 		ctx,
 		cancel,
 		cfg,
 		[]bootstrap.BootstrapHandler{
-			sdk.BootstrapHandler,
+			sdk.BootstrapHandler,      //sets up a stream eg: mqtt https://github.com/project-alvarium/alvarium-sdk-go/blob/e5ec0811a099446d00006f5d53f3b054f6733112/pkg/sdk.go#L46
 			create.BootstrapHandler,
 			mutate.BootstrapHandler,
 			transit.BootstrapHandler,

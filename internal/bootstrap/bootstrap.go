@@ -33,9 +33,9 @@ func Run(
 	configuration config.Configuration,
 	handlers []BootstrapHandler) {
 
-	wg, _ := initWaitGroup(ctx, cancel, configuration, handlers)
+	wg, _ := initWaitGroup(ctx, cancel, configuration, handlers)   // main entry point for bootstrap handlers/process
 
-	wg.Wait()
+	wg.Wait()             // waits until all tasks are done
 }
 
 func initWaitGroup(
@@ -46,9 +46,9 @@ func initWaitGroup(
 
 	startedSuccessfully := true
 
-	var wg sync.WaitGroup
+	var wg sync.WaitGroup              // used to keep track of asynchronous task
 	// call individual bootstrap handlers.
-	translateInterruptToCancel(ctx, &wg, cancel)
+	translateInterruptToCancel(ctx, &wg, cancel)  //ensure that a SIGTERM signal (graceful termination request) will cancel the context and allow for clean shutdowns
 	for i := range handlers {
 		if handlers[i](ctx, &wg) == false {
 			cancel()
@@ -67,17 +67,18 @@ func translateInterruptToCancel(ctx context.Context, wg *sync.WaitGroup, cancel 
 	go func() {
 		defer wg.Done()
 
-		signalStream := make(chan os.Signal)
+		signalStream := make(chan os.Signal)   //creates channel for go routines to communicate with each other, send signsls like SIGINT (interrupt) or SIGTERM (terminate).
 		defer func() {
 			signal.Stop(signalStream)
 			close(signalStream)
 		}()
-		signal.Notify(signalStream, os.Interrupt, syscall.SIGTERM)
+		// It tells Go's signal handling system to listen for os.Interrupt(Cltr+C) and syscall.SIGTERM signals and send them to the signalStream channel.
+		signal.Notify(signalStream, os.Interrupt, syscall.SIGTERM)   //listens for system signals and maps them to cancellation behavior. If a signal is received, it triggers the cancel()
 		select {
-		case <-signalStream:
+		case <-signalStream:     //A system interrupt signal (signalstream received any signal)
 			cancel()
 			return
-		case <-ctx.Done():
+		case <-ctx.Done():     //Context Cancellation (ctx.Done()), which indicates that the program is already stopping,
 			return
 		}
 	}()

@@ -33,21 +33,23 @@ type SampleData struct {
 	Signature   string `json:"signature,omitempty"`
 }
 
+//function reads a cryptographic key from a file, generates random data (description and seed), signs the seed using Ed25519, 
+//and returns a SampleData object containing the sample random data
 func NewSampleData(cfg config.KeyInfo) (SampleData, error) {
-	key, err := ioutil.ReadFile(cfg.Path)
+	key, err := ioutil.ReadFile(cfg.Path)  //cfg.Path contains information (path) of the key to be used (Private key in this case)
 	if err != nil {
 		return SampleData{}, err
 	}
 
 	x := SampleData{
-		Description: factoryRandomFixedLengthString(128, alphanumericCharset),
-		Seed:        factoryRandomFixedLengthString(64, alphanumericCharset),
+		Description: factoryRandomFixedLengthString(128, alphanumericCharset),   //random alphanumeric string of length 128 characters, generated using factoryRandomFixedLengthString
+		Seed:        factoryRandomFixedLengthString(64, alphanumericCharset),    //random alphanumeric string of length 64 characters, generated using factoryRandomFixedLengthString
 	}
 
-	keyDecoded := make([]byte, hex.DecodedLen(len(key)))
-	hex.Decode(keyDecoded, key)
-	signed := ed25519.Sign(keyDecoded, []byte(x.Seed))
-	x.Signature = fmt.Sprintf("%x", signed)
+	keyDecoded := make([]byte, hex.DecodedLen(len(key)))   //Creates a byte slice keyDecoded that has enough length to hold the decoded key.
+	hex.Decode(keyDecoded, key)      n                     //Decodes the hex-encoded key into bytes and stores in keyDecoded
+	signed := ed25519.Sign(keyDecoded, []byte(x.Seed))     //Signs the Seed using the decoded private key (keyDecoded) with the Ed25519 signature algorithm.
+	x.Signature = fmt.Sprintf("%x", signed)                //signature is formatted as hex string and stored in x Sample data
 	return x, nil
 }
 

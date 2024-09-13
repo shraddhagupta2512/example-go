@@ -40,25 +40,29 @@ func NewCreateLoop(sdk interfaces.Sdk, ch chan []byte, cfg config.SdkInfo, logge
 	}
 }
 
+//sets up a loop that continuously generates and processes new sample data, annotates it, and publishes it to a stream, 
+//also handles graceful shutdown when a cancellation signal is received
+// Parameters: ctx context.Context: used for cancellation and coordination of the process. 
+//wg *sync.WaitGroup: ensures all concurrent goroutines are properly synchronized and wait for each other to finish before exiting.
 func (c *CreateLoop) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) bool {
-	cancelled := false
+	cancelled := false       //keep track of when the process should stop during graceful shutdown
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
 		for !cancelled {
-			data, err := models.NewSampleData(c.cfg.Signature.PrivateKey)
+			data, err := models.NewSampleData(c.cfg.Signature.PrivateKey)   //data is generated using the private key using NewSampleData function
 			if err != nil {
 				c.logger.Error(err.Error())
 				continue
 			}
-			b, _ := json.Marshal(data)
+			b, _ := json.Marshal(data)    //data is converted into json format
 
-			c.sdk.Create(context.Background(), b)
-			c.chPublish <- b
-			time.Sleep(1 * time.Second)
+			c.sdk.Create(context.Background(), b)    //send data to the sdk.create, which annotates the data using the SDK's configured annotators
+			c.chPublish <- b                        //raw data is published to channel
+			time.Sleep(1 * time.Second)             //waits befoe generating new data
 		}
-		close(c.chPublish)
+		close(c.chPublish)                          //close the channel (cancel is true; no more data will be generated/sent)
 		c.logger.Write(slog.LevelDebug, "cancel received")
 	}()
 
@@ -66,9 +70,9 @@ func (c *CreateLoop) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup) b
 	go func() { // Graceful shutdown
 		defer wg.Done()
 
-		<-ctx.Done()
+		<-ctx.Done()                      //cancellation signal from context (main application is shutting down) 
 		c.logger.Write(slog.LevelInfo, "shutdown received")
 		cancelled = true
 	}()
-	return true
+	return true                     //handler started successfully
 }
